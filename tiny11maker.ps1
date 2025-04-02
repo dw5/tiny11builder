@@ -27,7 +27,7 @@ if ((Get-ExecutionPolicy) -eq 'Restricted') {
 }
 
 # Check and run the script as admin if required
-$adminSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
+<# $adminSID = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
 $adminGroup = $adminSID.Translate([System.Security.Principal.NTAccount])
 $myWindowsID=[System.Security.Principal.WindowsIdentity]::GetCurrent()
 $myWindowsPrincipal=new-object System.Security.Principal.WindowsPrincipal($myWindowsID)
@@ -41,8 +41,26 @@ if (! $myWindowsPrincipal.IsInRole($adminRole))
     [System.Diagnostics.Process]::Start($newProcess);
     exit
 }
+#>
 
+#$isAdmin = [bool]([Security.Principal.WindowsIdentity]::GetCurrent().Groups -match 'S-1-5-32-544')
 
+# Function to check if running as admin and relaunch as admin if not
+function Ensure-RunAsAdmin {
+    # Check if the script is running with admin privileges
+    if (-not ([bool](New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+        # Not running as admin, relaunch the script with admin privileges
+		Write-Host "Restarting Tiny11 image creator as admin in a new window, you can close this one." -BackgroundColor Red
+        $arguments = "-ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`""
+        Start-Process powershell.exe -ArgumentList $arguments -Verb RunAs
+        # Exit the current script instance
+        exit
+    }
+}
+
+# ======= Main script =======
+# Double check if I'm running as administrator
+Ensure-RunAsAdmin
 
 # Start the transcript and prepare the window
 Start-Transcript -Path "$ScratchDisk\tiny11.log" 
